@@ -6,16 +6,11 @@ FROM python:2.7
 MAINTAINER Dean Taylor <dean@gohitech.net>
 EXPOSE 8000
 ENTRYPOINT ["/docker-entrypoint.sh"]
-#CMD [ "python", "./your-daemon-or-script.py" ]
 WORKDIR /usr/src/app
 
-RUN pip install --no-cache-dir Django gunicorn
+RUN pip install --no-cache-dir \
+  Django==1.8.18 \
+  gunicorn==19.7.1
 
 COPY docker-entrypoint.d/ /docker-entrypoint.d/
 COPY docker-entrypoint.sh /
-
-#COPY requirements.txt ./
-#RUN pip install --no-cache-dir -r requirements.txt
-
-
-#RUN python manage.py init
