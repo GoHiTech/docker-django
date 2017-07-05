@@ -3,14 +3,21 @@
 
 # Sanity checks
 [ -d /docker-entrypoint.d ] || mkdir -p /docker-entrypoint.d
-python --version &>/dev/null || { echo "ERROR: Python not installed or not in path."; exit 1; }
-python -m django --version |grep -q 'No module named django' && \
-  { echo "ERROR: No module named django"; exit 1; }
+export DJANGO_PROJECT_NAME="${DJANGO_PROJECT_NAME:-mysite}"
 
 # Create a new project if manage.py does not exist
-[ -f manage.py ] || django-admin startproject ${DJANGO_PROJECT_NAME:-'mysite'} .
+if [ ! -f manage.py ]; then
+  django-admin startproject ${DJANGO_PROJECT_NAME} .
+  mv ${DJANGO_PROJECT_NAME}/settings.py ${DJANGO_PROJECT_NAME}/settings_startproject.py
+  ln -sr ${DJANGO_PROJECT_NAME}/settings_docker.py ${DJANGO_PROJECT_NAME}/settings.py
+fi
 
-if ! ping -c1 -w1 db 2>&1 |grep -q 'unknown host'; then
+if ping -c1 -w1 db &>/dev/null; then
+  export DJANGO_DATABASE='postgresql'
+  export DJANGO_DATABASECACHE_ENABLE='True'
+
+  pip install --no-cache-dir psycopg2
+
   # Ensure Postgres database is ready to accept a connection
   echo "Trying db connection..."
   while ! nc -z db 5432; do
@@ -19,8 +26,18 @@ if ! ping -c1 -w1 db 2>&1 |grep -q 'unknown host'; then
   done
   echo "Connected to DB, will continue processing"
   sleep 5
+
+  python manage.py createcachetable
+  python manage.py migrate
 else
-  echo "WARNING: Database container link; db unknown host"
+  echo "WARNING: Database container link; db: Name or service not known"
+fi
+if ping -c1 -w1 memcached &>/dev/null; then
+  export DJANGO_MEMCACHED_ENABLE='True'
+
+  pip install --no-cache-dir python-memcached
+else
+  echo "WARNING: Caches container link; memcached: Name or service not known"
 fi
 
 # Source files in /docker-entrypoint.d dump directory
