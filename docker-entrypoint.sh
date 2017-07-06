@@ -9,8 +9,11 @@ export DJANGO_PROJECT_NAME="${DJANGO_PROJECT_NAME:-mysite}"
 if [ ! -f manage.py ]; then
   django-admin startproject ${DJANGO_PROJECT_NAME} .
   mv ${DJANGO_PROJECT_NAME}/settings.py ${DJANGO_PROJECT_NAME}/settings_startproject.py
-  ln -sr ${DJANGO_PROJECT_NAME}/settings_docker.py ${DJANGO_PROJECT_NAME}/settings.py
 fi
+
+# Ensure base setting files are in location
+[ -f ${DJANGO_PROJECT_NAME}/settings_docker.py ] || ln -sr settings_docker.py ${DJANGO_PROJECT_NAME}/settings_docker.py
+[ -f ${DJANGO_PROJECT_NAME}/settings.py ] || cp settings_template.py ${DJANGO_PROJECT_NAME}/settings.py
 
 if ping -c1 -w1 db &>/dev/null; then
   export DJANGO_DATABASE='postgresql'
@@ -45,7 +48,7 @@ IFS=$'\n' eval 'for f in $(find /docker-entrypoint.d/ -type f -print |sort); do 
 
 # Start Gunicorn process
 echo 'Starting Gunicorn.'
-exec gunicorn ${DJANGO_PROJECT_NAME:-'mysite'}.wsgi \
+exec gunicorn ${DJANGO_PROJECT_NAME}.wsgi \
   --name         ${GUNICORN_NAME:-'wsgi_app'} \
   --bind         ${GUNICORN_BIND_IP:-'0.0.0.0'}:8000 \
   --worker-class ${GUNICORN_WORKER_CLASS:-'sync'} \

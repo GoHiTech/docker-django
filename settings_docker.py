@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 
 import sys
 import socket
+from envparse import env
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
@@ -26,9 +27,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', '+hzj(tw!bod_*_xh4u2ml!ylbtx6)2r9bqq2i!evjo!x&pay%2')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = ('DJANGO_DEBUG', 'False')
+DEBUG = env.bool('DJANGO_DEBUG', default=False)
 
-ALLOWED_HOSTS = [ os.getenv('DJANGO_ALLOWED_HOSTS', '.gohitech.net') ]
+ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '.gohitech.net').split(",")
 
 
 # Application definition
@@ -97,11 +98,11 @@ LANGUAGE_CODE = os.getenv('DJANGO_LANGUAGE_CODE', 'en-au')
 
 TIME_ZONE = os.getenv('DJANGO_TIME_ZONE', 'Australia/Perth')
 
-USE_I18N = os.getenv('DJANGO_USE_I18N', 'True')
+USE_I18N = env.bool('DJANGO_USE_I18N', default=True)
 
-USE_L10N = os.getenv('DJANGO_USE_L10N', 'True')
+USE_L10N = env.bool('DJANGO_USE_L10N', default=True)
 
-USE_TZ = os.getenv('DJANGO_USE_TZ', 'True')
+USE_TZ = env.bool('DJANGO_USE_TZ', default=True)
 
 
 # Static files (CSS, JavaScript, Images)
@@ -132,8 +133,3 @@ else:
             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
         },
     }
-
-try:
-    from settings_local import *
-except ImportError:
-    print sys.exc_info()
