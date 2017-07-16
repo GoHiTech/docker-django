@@ -11,6 +11,7 @@ WORKDIR /usr/src/app
 RUN pip install --no-cache-dir \
   Django==1.8.18 \
   envparse \
+  gevent \
   gunicorn
 
 COPY docker-entrypoint.d/ /docker-entrypoint.d/
