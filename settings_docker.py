@@ -13,23 +13,36 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import sys
 import socket
 from envparse import env
+from ast import literal_eval
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
+this_module = sys.modules[__name__]
+# Get all Environment variables with a DJANGO_ prefix; remove prefix
+#print { k: v for k, v in os.environ.iteritems() if k.startswith('DJANGO_') }
+_django_environ = { k[7:]: v for k, v in os.environ.iteritems() if k.startswith('DJANGO_') }
+for key in _django_environ:
+    try:
+        if key in {'SETTINGS_MODULE','PROJECT_NAME',}:
+            pass
+        elif key in {'ADMINS','MANAGERS',}:
+            setattr(this_module, key, tuple(literal_eval(_django_environ[key])))
+        else:
+            setattr(this_module, key, literal_eval(_django_environ[key]))
+    except ValueError,e:
+        print "ValueError for %s: %s (%s)" % (key,_django_environ[key],str(e))
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
+#ALLOWED_HOSTS = literal_eval( os.getenv('DJANGO_ALLOWED_HOSTS', '[".gohitech.net"]') )
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', '+hzj(tw!bod_*_xh4u2ml!ylbtx6)2r9bqq2i!evjo!x&pay%2')
-
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.bool('DJANGO_DEBUG', default=False)
-
-ALLOWED_HOSTS = os.getenv('DJANGO_ALLOWED_HOSTS', '.gohitech.net').split(",")
 
 
 # Application definition
@@ -91,26 +104,6 @@ if os.getenv('DJANGO_DATABASE') == 'postgresql':
     }
 
 
-# Internationalization
-# https://docs.djangoproject.com/en/1.8/topics/i18n/
-
-LANGUAGE_CODE = os.getenv('DJANGO_LANGUAGE_CODE', 'en-au')
-
-TIME_ZONE = os.getenv('DJANGO_TIME_ZONE', 'Australia/Perth')
-
-USE_I18N = env.bool('DJANGO_USE_I18N', default=True)
-
-USE_L10N = env.bool('DJANGO_USE_L10N', default=True)
-
-USE_TZ = env.bool('DJANGO_USE_TZ', default=True)
-
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/1.8/howto/static-files/
-
-STATIC_URL = os.getenv('DJANGO_STATIC_URL', '/static/')
-
-
 # CACHES
 # https://docs.djangoproject.com/en/1.8/topics/cache/
 if os.getenv('DJANGO_MEMCACHED_ENABLE'):
@@ -133,3 +126,4 @@ else:
             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
         },
     }
+
