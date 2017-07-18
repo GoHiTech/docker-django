@@ -8,6 +8,10 @@ EXPOSE 8000
 ENTRYPOINT ["/docker-entrypoint.sh"]
 WORKDIR /usr/src/app
 
+RUN apt-get update && apt-get -y install \
+  netcat \
+  && apt-get clean
+
 RUN pip install --no-cache-dir \
   Django==1.8.18 \
   envparse \
