@@ -110,7 +110,7 @@ elif _gethostbyname('db'):
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'NAME': os.path.join(BASE_DIR, 'db.sqlite3'),
+            'NAME': os.getenv('DJANGO_DATABASE_NAME', 'postgres'),
             'USER': os.getenv('DJANGO_DATABASE_USER', 'postgres'),
             'PASSWORD': os.getenv('DJANGO_DATABASE_PASSWORD', ''),
             'HOST': 'db',
