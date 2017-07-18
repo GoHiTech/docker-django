@@ -9,41 +9,48 @@ https://docs.djangoproject.com/en/1.8/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.8/ref/settings/
 """
+# Quick-start development settings - unsuitable for production
+# See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
 import sys
 import socket
-from envparse import env
 from ast import literal_eval
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+def _gethostbyname(hostname):
+    try:
+        socket.gethostbyname(hostname)
+        return True
+    except socket.error:
+        return False
 
 this_module = sys.modules[__name__]
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+ROOT_URLCONF = os.getenv('DJANGO_PROJECT_NAME', 'gohitech') + '.urls'
+
+WSGI_APPLICATION = os.getenv('DJANGO_PROJECT_NAME', 'gohitech') + '.wsgi.application'
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', '+hzj(tw!bod_*_xh4u2ml!ylbtx6)2r9bqq2i!evjo!x&pay%2')
+
 # Get all Environment variables with a DJANGO_ prefix; remove prefix
 #print { k: v for k, v in os.environ.iteritems() if k.startswith('DJANGO_') }
 _django_environ = { k[7:]: v for k, v in os.environ.iteritems() if k.startswith('DJANGO_') }
 for key in _django_environ:
     try:
-        if key in {'SETTINGS_MODULE','PROJECT_NAME',}:
+        if (key in {'PROJECT_NAME','SETTINGS_MODULE',}) or (key.startswith('DATABASE_')):
             pass
         elif key in {'ADMINS','MANAGERS',}:
             setattr(this_module, key, tuple(literal_eval(_django_environ[key])))
         else:
             setattr(this_module, key, literal_eval(_django_environ[key]))
     except ValueError,e:
-        print "ValueError for %s: %s (%s)" % (key,_django_environ[key],str(e))
-
-
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
-
-#ALLOWED_HOSTS = literal_eval( os.getenv('DJANGO_ALLOWED_HOSTS', '[".gohitech.net"]') )
-
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', '+hzj(tw!bod_*_xh4u2ml!ylbtx6)2r9bqq2i!evjo!x&pay%2')
-
+        setattr(this_module, key, _django_environ[key])
+        #print "ValueError for %s: %s (%s)" % (key,_django_environ[key],str(e))
 
 # Application definition
 
@@ -67,8 +74,6 @@ MIDDLEWARE_CLASSES = (
     'django.middleware.security.SecurityMiddleware',
 )
 
-ROOT_URLCONF = os.getenv('DJANGO_PROJECT_NAME', 'gohitech') + '.urls'
-
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -85,13 +90,23 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = os.getenv('DJANGO_PROJECT_NAME', 'gohitech') + '.wsgi.application'
-
-
-# Database
+# CACHES and Database
+# https://docs.djangoproject.com/en/1.8/topics/cache/
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
-
-if os.getenv('DJANGO_DATABASE') == 'postgresql':
+if _gethostbyname('memcached'):
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+            'LOCATION': 'memcached:11211',
+        },
+    }
+elif _gethostbyname('db'):
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'cache_table_default',
+        },
+    }
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -100,24 +115,6 @@ if os.getenv('DJANGO_DATABASE') == 'postgresql':
             'PASSWORD': os.getenv('DJANGO_DATABASE_PASSWORD', ''),
             'HOST': 'db',
             'PORT': '5432',
-        },
-    }
-
-
-# CACHES
-# https://docs.djangoproject.com/en/1.8/topics/cache/
-if os.getenv('DJANGO_MEMCACHED_ENABLE'):
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-            'LOCATION': 'memcached:11211',
-        },
-    }
-elif os.getenv('DJANGO_DATABASECACHE_ENABLE'):
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-            'LOCATION': 'cache_table_default',
         },
     }
 else:
