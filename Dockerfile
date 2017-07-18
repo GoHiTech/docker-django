@@ -17,11 +17,13 @@ RUN pip install --no-cache-dir \
 COPY docker-entrypoint.d/ /docker-entrypoint.d/
 COPY docker-entrypoint.sh /
 
-# Django Docker defaults settings
+# Django Docker default settings
 ENV DJANGO_ALLOWED_HOSTS="['.gohitech.net']"
 ENV DJANGO_DEBUG="False"
 ENV DJANGO_LANGUAGE_CODE="en-au"
 ENV DJANGO_TIME_ZONE="Australia/Perth"
+ENV DJANGO_USE_TZ="True"
+ENV DJANGO_USE_X_FORWARDED_HOST="True"
 
 ENV DJANGO_PROJECT_NAME="gohitech"
 

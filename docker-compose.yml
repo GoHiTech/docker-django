@@ -4,4 +4,5 @@ services:
     build: .
     environment:
       - DJANGO_ADMINS=[('John', 'john@example.com'), ('Mary', 'mary@example.com')]
+      - DJANGO_DEBUG=True
       - GUNICORN_WORKER_CLASS=gevent
