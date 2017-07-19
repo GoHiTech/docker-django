@@ -31,4 +31,4 @@ ENV DJANGO_USE_X_FORWARDED_HOST="True"
 
 ENV DJANGO_PROJECT_NAME="gohitech"
 
-COPY settings_docker.py settings_template.py ./
+COPY settings.py ./

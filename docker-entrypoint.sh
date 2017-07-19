@@ -12,13 +12,25 @@ if [ ! -f manage.py ]; then
 fi
 
 # Ensure base setting files are in location
-[ -f ${DJANGO_PROJECT_NAME}/settings_docker.py ] || ln -sr settings_docker.py ${DJANGO_PROJECT_NAME}/settings_docker.py
-[ -f ${DJANGO_PROJECT_NAME}/settings.py ] || cp settings_template.py ${DJANGO_PROJECT_NAME}/settings.py
+[ -d ${DJANGO_PROJECT_NAME}/settings.d ]  || mkdir -p ${DJANGO_PROJECT_NAME}/settings.d
+[ -f ${DJANGO_PROJECT_NAME}/settings.py ] && mv ${DJANGO_PROJECT_NAME}/settings.py ${DJANGO_PROJECT_NAME}/settings.d/
+ln -sr settings.py ${DJANGO_PROJECT_NAME}/settings.py
 
-if ping -c1 -w1 db &>/dev/null; then
-  export DJANGO_DATABASE='postgresql'
-  export DJANGO_DATABASECACHE_ENABLE='True'
+# Services?
+is_memcached=false; is_db=false
+ping -c1 -w1 memcached &>/dev/null && is_memcached=true
+ping -c1 -w1 db &>/dev/null        && is_db=true
+export is_memcached is_db
 
+# Configure and setup memcached if present
+if ${is_memcached}; then
+  pip install --no-cache-dir python-memcached
+else
+  echo "WARNING: Caches container link; memcached: Name or service not known"
+fi
+
+# Configure and setup database if present
+if ${is_db}; then
   pip install --no-cache-dir psycopg2
 
   # Ensure Postgres database is ready to accept a connection
@@ -28,19 +40,12 @@ if ping -c1 -w1 db &>/dev/null; then
     sleep 1
   done
   echo "Connected to DB, will continue processing"
-  sleep 5
+  sleep 3
 
-  python manage.py createcachetable
+  $is_memcached || python manage.py createcachetable
   python manage.py migrate
 else
   echo "WARNING: Database container link; db: Name or service not known"
-fi
-if ping -c1 -w1 memcached &>/dev/null; then
-  export DJANGO_MEMCACHED_ENABLE='True'
-
-  pip install --no-cache-dir python-memcached
-else
-  echo "WARNING: Caches container link; memcached: Name or service not known"
 fi
 
 # Source files in /docker-entrypoint.d dump directory
