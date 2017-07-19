@@ -15,6 +15,7 @@ https://docs.djangoproject.com/en/1.8/ref/settings/
 import sys
 import socket
 from ast import literal_eval
+import glob
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
@@ -97,16 +98,18 @@ if _gethostbyname('memcached'):
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-            'LOCATION': 'memcached:11211',
+            'LOCATION': socket.gethostbyname('memcached') + ':11211',
         },
     }
 elif _gethostbyname('db'):
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-            'LOCATION': 'cache_table_default',
-        },
-    }
+    if not _gethostbyname('memcached'):
+        CACHES = {
+            'default': {
+                'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+                'LOCATION': 'cache_table_default',
+            },
+        }
+
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql_psycopg2',
@@ -124,3 +127,10 @@ else:
         },
     }
 
+# Provide overrides in settings.d/*.py
+config_files = glob.glob(os.path.join(BASE_DIR, 'settings.d', '*.py')).sort()
+try:
+    for config_f in config_files:
+        execfile(os.path.abspath(config_f))
+except TypeError:
+    pass
