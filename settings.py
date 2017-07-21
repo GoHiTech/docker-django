@@ -38,6 +38,10 @@ WSGI_APPLICATION = os.getenv('DJANGO_PROJECT_NAME', 'gohitech') + '.wsgi.applica
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', '+hzj(tw!bod_*_xh4u2ml!ylbtx6)2r9bqq2i!evjo!x&pay%2')
 
+# https://docs.djangoproject.com/en/1.8/howto/static-files/
+STATIC_URL = '/static/'
+STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
 # Get all Environment variables with a DJANGO_ prefix; remove prefix
 #print { k: v for k, v in os.environ.iteritems() if k.startswith('DJANGO_') }
 _django_environ = { k[7:]: v for k, v in os.environ.iteritems() if k.startswith('DJANGO_') }
@@ -128,9 +132,10 @@ else:
     }
 
 # Provide overrides in settings.d/*.py
-config_files = glob.glob(os.path.join(BASE_DIR, 'settings.d', '*.py')).sort()
+config_files = glob.glob(os.path.join(BASE_DIR,'settings.d','*.py'))
 try:
-    for config_f in config_files:
+    for config_f in sorted(config_files):
+        print "INFO: Execute config file %s" % os.path.abspath(config_f)
         execfile(os.path.abspath(config_f))
-except TypeError:
+except TypeError,e:
     pass

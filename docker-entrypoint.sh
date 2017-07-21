@@ -48,7 +48,11 @@ else
   echo "WARNING: Database container link; db: Name or service not known"
 fi
 
-# Source files in /docker-entrypoint.d dump directory
+# https://docs.djangoproject.com/en/1.8/howto/static-files/
+echo 'python manage.py collectstatic --noinput'
+python manage.py collectstatic --noinput
+
+# Source files in docker-entrypoint.d/ dump directory
 IFS=$'\n' eval 'for f in $(find /docker-entrypoint.d/ -type f -print |sort); do source ${f}; done'
 
 # Start Gunicorn process
