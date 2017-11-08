@@ -31,6 +31,6 @@ ENV DJANGO_USE_X_FORWARDED_HOST="True"
 
 ENV DJANGO_PROJECT_NAME="gohitech"
 
-COPY settings.py ./
-COPY settings.d/ ./settings.d/
+COPY settings.py /settings.py
+COPY settings.d/ /settings.d/
 
