@@ -10,6 +10,7 @@ if [ ! -f manage.py ]; then
   django-admin startproject ${DJANGO_PROJECT_NAME} .
   mv ${DJANGO_PROJECT_NAME}/settings.py ${DJANGO_PROJECT_NAME}/settings_startproject.py
 fi
+export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-${DJANGO_PROJECT_NAME}.settings}"
 
 # Ensure base setting files are in location
 [ -d ${DJANGO_PROJECT_NAME}/settings.d ]  || mkdir -p ${DJANGO_PROJECT_NAME}/settings.d
@@ -19,18 +20,18 @@ ln -sr settings.py ${DJANGO_PROJECT_NAME}/settings.py
 # Services?
 is_memcached=false; is_db=false
 ping -c1 -w1 memcached &>/dev/null && is_memcached=true
-ping -c1 -w1 db &>/dev/null        && is_db=true
+ping -c1 -w1 db        &>/dev/null && is_db=true
 export is_memcached is_db
 
 # Configure and setup memcached if present
-if ${is_memcached}; then
+if $is_memcached; then
   pip install --no-cache-dir python-memcached
 else
   echo "WARNING: Caches container link; memcached: Name or service not known"
 fi
 
 # Configure and setup database if present
-if ${is_db}; then
+if $is_db; then
   pip install --no-cache-dir psycopg2
 
   # Ensure Postgres database is ready to accept a connection
