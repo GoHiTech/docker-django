@@ -46,19 +46,15 @@ if $is_db; then
   sleep 3
 
   $is_memcached || python manage.py createcachetable
+
+  echo 'python manage.py migrate djcelery'
+  python manage.py migrate djcelery
+
+  echo 'python manage.py migrate'
   python manage.py migrate
 else
   echo "WARNING: Database container link; db: Name or service not known"
 fi
-
-# https://docs.djangoproject.com/en/1.8/howto/static-files/
-if [[ $CELERY_ENABLE != True ]]; then
-  echo 'python manage.py collectstatic --noinput'
-  python manage.py collectstatic --noinput
-fi
-
-echo 'python manage.py migrate djcelery'
-python manage.py migrate djcelery
 
 # Source files in docker-entrypoint.d/ dump directory
 IFS=$'\n' eval 'for f in $(find /docker-entrypoint.d/ -type f ! \( -iname '*.DISABLE' \) -print |sort); do source ${f}; done'
@@ -78,6 +74,10 @@ EOT
   echo 'Starting Celery worker.'
   su -c "python manage.py celery worker $@" -p - $CELERY_USER
 elif [[ $GUNICORN_ENABLE != False ]]; then
+  # https://docs.djangoproject.com/en/1.8/howto/static-files/
+  echo 'python manage.py collectstatic --noinput'
+  python manage.py collectstatic --noinput
+
   # Start Gunicorn process
   echo 'Starting Gunicorn.'
   exec gunicorn ${DJANGO_PROJECT_NAME}.wsgi \
