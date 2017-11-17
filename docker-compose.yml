@@ -10,7 +10,21 @@ services:
       - db
     ports:
       - "127.0.0.1:8000:8000"
+    volumes:
+      - ./share:/share
+  celery:
+    image: dockerdjango_django
+    command: --loglevel=INFO
+    environment:
+      - CELERY_ENABLE=True
+  other:
+    image: dockerdjango_django
+    command: ["tail","-f","/dev/null",]
+    environment:
+      - GUNICORN_ENABLE=False
   db:
     image: postgres
     environment:
       - BD_NAME=mytardis-dev
+  rabbitmq:
+    image: rabbitmq:3
