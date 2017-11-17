@@ -57,6 +57,25 @@ for key in _django_environ:
         setattr(this_module, key, _django_environ[key])
         #print "ValueError for %s: %s (%s)" % (key,_django_environ[key],str(e))
 
+# Logging
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class':  'logging.StreamHandler',
+            'stream': sys.stdout,
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console',],
+            'level':    os.getenv('DJANGO_LOG_LEVEL','INFO'),
+        },
+    },
+}
+
 # Application definition
 
 INSTALLED_APPS = (
@@ -67,6 +86,9 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
 )
+INSTALLED_APPS += ("djcelery", )
+import djcelery
+djcelery.setup_loader()
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -132,7 +154,8 @@ else:
     }
 
 # Provide overrides in settings.d/*.py
-config_files = glob.glob(os.path.join(BASE_DIR,'settings.d','*.py'))
+config_files = glob.glob(os.path.join(os.getenv('DJANGO_PROJECT_NAME', 'gohitech'),'settings.d','*.py'))
+#config_files = glob.glob(os.path.join(BASE_DIR,'settings.d','*.py'))
 try:
     for config_f in sorted(config_files):
         print "INFO: Execute config file %s" % os.path.abspath(config_f)

@@ -2,6 +2,7 @@ FROM python:2.7
 # https://hub.docker.com/_/python/
 # https://docs.djangoproject.com/en/1.11/
 # http://docs.gunicorn.org/en/stable/settings.html
+# https://pypi.python.org/pypi/django-celery
 
 MAINTAINER Dean Taylor <dean@gohitech.net>
 EXPOSE 8000
@@ -13,7 +14,9 @@ RUN apt-get update && apt-get -y install \
   && apt-get clean
 
 RUN pip install --no-cache-dir \
+  celery==3.1.17 \
   Django==1.8.18 \
+  django-celery \
   envparse \
   gevent \
   gunicorn
@@ -34,3 +37,5 @@ ENV DJANGO_PROJECT_NAME="gohitech"
 COPY settings.py ./settings.py
 COPY settings.d/ ./settings.d/
 
+RUN groupadd user \
+  && useradd --home-dir "$(pwd)" -g user user
