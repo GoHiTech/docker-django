@@ -86,9 +86,6 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
 )
-INSTALLED_APPS += ("djcelery", )
-import djcelery
-djcelery.setup_loader()
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -152,6 +149,16 @@ else:
             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
         },
     }
+
+# django-celery
+# https://pypi.python.org/pypi/django-celery
+# http://docs.celeryproject.org/en/3.1/getting-started/brokers/rabbitmq.html
+# http://docs.celeryproject.org/en/3.1/configuration.html#std:setting
+INSTALLED_APPS += ("djcelery", )
+import djcelery
+djcelery.setup_loader()
+BROKER_URL = 'amqp://guest:guest@rabbitmq:5672//'
+CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml']
 
 # Provide overrides in settings.d/*.py
 config_files = glob.glob(os.path.join(os.getenv('DJANGO_PROJECT_NAME', 'gohitech'),'settings.d','*.py'))
