@@ -163,7 +163,6 @@ else:
         },
     }
 
-
 # Provide overrides in settings.d/*.py
 config_files = glob.glob(os.path.join(os.getenv('DJANGO_PROJECT_NAME', 'gohitech'),'settings.d','*.py'))
 #config_files = glob.glob(os.path.join(BASE_DIR,'settings.d','*.py'))
