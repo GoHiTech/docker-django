@@ -4,6 +4,7 @@
 
 # Sanity checks
 [ -d /docker-entrypoint.d ] || mkdir -p /docker-entrypoint.d
+[ -d /docker-entrypoint_celery.d ] || mkdir -p /docker-entrypoint_celery.d
 [ -z $DJANGO_PROJECT_NAME ] && export DJANGO_PROJECT_NAME='mysite'
 [ -z $RUNAS_USER ] && export RUNAS_USER='user'
 
@@ -25,6 +26,16 @@ is_memcached=false; is_db=false
 ping -c1 -w1 memcached &>/dev/null && is_memcached=true
 ping -c1 -w1 db        &>/dev/null && is_db=true
 export is_memcached is_db
+
+# Run?
+if [[ $GUNICORN_ENABLE == True ]]; then
+  export CELERY_ENABLE='False'
+elif [[ $CELERY_ENABLE == True ]]; then
+  export GUNICORN_ENABLE='False'
+elif [[ $GUNICORN_ENABLE != False ]]; then
+  export GUNICORN_ENABLE='True'
+  export CELERY_ENABLE='False'
+fi
 
 # Configure and setup memcached if present
 if $is_memcached; then
@@ -49,7 +60,7 @@ if $is_db; then
   echo "Connected to DB, will continue processing"
   sleep 3
 
-  if [[ $CELERY_ENABLE != True ]]; then
+  if [[ $GUNICORN_ENABLE == True ]]; then
     echo 'python manage.py migrate --fake-initial'
     python manage.py migrate --fake-initial
 
@@ -62,24 +73,10 @@ else
   echo "WARNING: Database container link; db: Name or service not known"
 fi
 
-# Source files in docker-entrypoint.d/ dump directory
-IFS=$'\n' eval 'for f in $(find /docker-entrypoint.d/ -type f ! \( -iname '*.DISABLE' \) -print |sort); do source ${f}; done'
+if [[ $GUNICORN_ENABLE == True ]]; then
+  # Source files in docker-entrypoint.d/ dump directory
+  IFS=$'\n' eval 'for f in $(find /docker-entrypoint.d/ -type f ! \( -iname '*.DISABLE' \) -print |sort); do source ${f}; done'
 
-if [[ $CELERY_ENABLE == True ]]; then
-  export CELERY_USER="${RUNAS_USER}"
-
-  export GUNICORN_ENABLE='False'
-
-  if [ ! -f celeryconfig.py ]; then
-    cat >celeryconfig.py <<EOT
-import os
-BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://')
-EOT
-  fi
-
-  echo 'Starting Celery worker.'
-  su -c "python manage.py celery worker $@" -p - $CELERY_USER
-elif [[ $GUNICORN_ENABLE != False ]]; then
   export GUNICORN_USER="${RUNAS_USER}"
   # https://docs.djangoproject.com/en/1.8/howto/static-files/
   echo 'python manage.py collectstatic --noinput'
@@ -97,6 +94,23 @@ elif [[ $GUNICORN_ENABLE != False ]]; then
     --access-logfile - \
     --error-logfile - \
     "$@"
+elif [[ $CELERY_ENABLE == True ]]; then
+  # Source files in docker-entrypoint_celery.d/ dump directory
+  IFS=$'\n' eval 'for f in $(find /docker-entrypoint_celery.d/ -type f ! \( -iname '*.DISABLE' \) -print |sort); do source ${f}; done'
+
+  export CELERY_USER="${RUNAS_USER}"
+
+  export GUNICORN_ENABLE='False'
+
+  if [ ! -f celeryconfig.py ]; then
+    cat >celeryconfig.py <<EOT
+import os
+BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://')
+EOT
+  fi
+
+  echo 'Starting Celery worker.'
+  su -c "python manage.py celery worker $@" -p - $CELERY_USER
 else
   $@
 fi
