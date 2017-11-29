@@ -20,6 +20,11 @@ import glob
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
 
+# https://pypi.python.org/pypi/django-celery
+# http://docs.celeryproject.org/en/3.1/
+# http://docs.celeryproject.org/en/3.1/configuration.html
+import djcelery
+
 def _gethostbyname(hostname):
     try:
         socket.gethostbyname(hostname)
@@ -41,6 +46,11 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', '+hzj(tw!bod_*_xh4u2ml!ylbtx6)2r9bqq
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
+
+# http://docs.celeryproject.org/en/3.1/configuration.html
+BROKER_URL = 'amqp://guest:guest@rabbitmq:5672//'
+CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml',]
+
 
 # Get all Environment variables with a DJANGO_ prefix; remove prefix
 #print { k: v for k, v in os.environ.iteritems() if k.startswith('DJANGO_') }
@@ -87,8 +97,6 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
 )
 INSTALLED_APPS += ("djcelery", )
-import djcelery
-djcelery.setup_loader()
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -120,6 +128,7 @@ TEMPLATES = [
 # CACHES and Database
 # https://docs.djangoproject.com/en/1.8/topics/cache/
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
+# https://hub.docker.com/_/postgres/
 if _gethostbyname('memcached'):
     CACHES = {
         'default': {
@@ -136,22 +145,24 @@ elif _gethostbyname('db'):
             },
         }
 
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql_psycopg2',
-            'NAME': os.getenv('DJANGO_DATABASE_NAME', 'postgres'),
-            'USER': os.getenv('DJANGO_DATABASE_USER', 'postgres'),
-            'PASSWORD': os.getenv('DJANGO_DATABASE_PASSWORD', ''),
-            'HOST': 'db',
-            'PORT': '5432',
-        },
-    }
+    if os.getenv('POSTGRES_PASSWORD') is not None:
+        DATABASES = {
+            'default': {
+                'ENGINE':  'django.db.backends.postgresql_psycopg2',
+                'NAME':     os.getenv('POSTGRES_DB', os.getenv('POSTGRES_USER','postgres')),
+                'USER':     os.getenv('POSTGRES_USER','postgres'),
+                'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+                'HOST':     'db',
+                'PORT':     '5432',
+            },
+        }
 else:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
         },
     }
+
 
 # Provide overrides in settings.d/*.py
 config_files = glob.glob(os.path.join(os.getenv('DJANGO_PROJECT_NAME', 'gohitech'),'settings.d','*.py'))
@@ -162,3 +173,6 @@ try:
         execfile(os.path.abspath(config_f))
 except TypeError,e:
     pass
+
+print "djcelery.setup_loader()"
+djcelery.setup_loader()
