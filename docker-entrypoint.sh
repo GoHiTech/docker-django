@@ -4,7 +4,8 @@
 
 # Sanity checks
 [ -d /docker-entrypoint.d ] || mkdir -p /docker-entrypoint.d
-export DJANGO_PROJECT_NAME="${DJANGO_PROJECT_NAME:-mysite}"
+[ -z $DJANGO_PROJECT_NAME ] && export DJANGO_PROJECT_NAME='mysite'
+[ -z $RUNAS_USER ] && export RUNAS_USER='user'
 
 # Create a new project if manage.py does not exist
 if [ ! -f manage.py ]; then
@@ -36,6 +37,9 @@ fi
 if $is_db; then
   pip install --no-cache-dir psycopg2
 
+  [ -z $POSTGRES_PASSWORD ] && export POSTGRES_PASSWORD='postgres'
+
+
   # Ensure Postgres database is ready to accept a connection
   echo "Trying db connection..."
   while ! nc -z db 5432; do
@@ -45,13 +49,15 @@ if $is_db; then
   echo "Connected to DB, will continue processing"
   sleep 3
 
-  $is_memcached || python manage.py createcachetable
+  if [[ $CELERY_ENABLE != True ]]; then
+    echo 'python manage.py migrate --fake-initial'
+    python manage.py migrate --fake-initial
 
-  echo 'python manage.py migrate djcelery'
-  python manage.py migrate djcelery
-
-  echo 'python manage.py migrate'
-  python manage.py migrate
+    if ! $is_memcached; then
+      echo 'python manage.py createcachetable'
+      python manage.py createcachetable
+    fi
+  fi
 else
   echo "WARNING: Database container link; db: Name or service not known"
 fi
@@ -60,7 +66,7 @@ fi
 IFS=$'\n' eval 'for f in $(find /docker-entrypoint.d/ -type f ! \( -iname '*.DISABLE' \) -print |sort); do source ${f}; done'
 
 if [[ $CELERY_ENABLE == True ]]; then
-  [ -z $CELERY_USER ] && export CELERY_USER='user'
+  export CELERY_USER="${RUNAS_USER}"
 
   export GUNICORN_ENABLE='False'
 
@@ -74,6 +80,7 @@ EOT
   echo 'Starting Celery worker.'
   su -c "python manage.py celery worker $@" -p - $CELERY_USER
 elif [[ $GUNICORN_ENABLE != False ]]; then
+  export GUNICORN_USER="${RUNAS_USER}"
   # https://docs.djangoproject.com/en/1.8/howto/static-files/
   echo 'python manage.py collectstatic --noinput'
   python manage.py collectstatic --noinput

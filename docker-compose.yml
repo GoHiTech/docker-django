@@ -6,6 +6,7 @@ services:
       - DJANGO_ADMINS=[('John', 'john@example.com'), ('Mary', 'mary@example.com')]
       - DJANGO_DEBUG=True
       - GUNICORN_WORKER_CLASS=gevent
+      - POSTGRES_PASSWORD=password
     links:
       - db
     ports:
@@ -25,6 +26,6 @@ services:
   db:
     image: postgres
     environment:
-      - BD_NAME=mytardis-dev
+      - POSTGRES_PASSWORD=password
   rabbitmq:
     image: rabbitmq:3
