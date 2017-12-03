@@ -15,7 +15,7 @@ services:
       - ./share:/share
   celery:
     image: dockerdjango_django
-    command: --loglevel=INFO
+    command: --loglevel=INFO --autoreload
     environment:
       - CELERY_ENABLE=True
   other:

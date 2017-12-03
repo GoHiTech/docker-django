@@ -109,8 +109,10 @@ BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://')
 EOT
   fi
 
-  echo 'Starting Celery worker.'
-  su -c "python manage.py celery worker $@" -p - $CELERY_USER
+  su_cmd="python manage.py celery worker $@"
+
+  echo 'Starting Celery worker.'; echo "${su_cmd}"
+  su -c "${su_cmd}" -p - $CELERY_USER
 else
   $@
 fi
