@@ -22,6 +22,7 @@ RUN pip install --no-cache-dir \
   gunicorn
 
 COPY docker-entrypoint.d/ /docker-entrypoint.d/
+COPY docker-entrypoint_celery.d/ /docker-entrypoint_celery.d/
 COPY docker-entrypoint.sh /
 
 # Django Docker default settings
