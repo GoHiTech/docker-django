@@ -18,6 +18,18 @@ services:
     command: --loglevel=INFO --autoreload
     environment:
       - CELERY_ENABLE=True
+      - POSTGRES_PASSWORD=password
+    links:
+      - db
+  beat:
+    image: dockerdjango_django
+    command: --loglevel=INFO
+    environment:
+      - CELERY_ENABLE=beat
+      - POSTGRES_PASSWORD=password
+    links:
+      - db
+    restart: on-failure
   other:
     image: dockerdjango_django
     command: ["tail","-f","/dev/null",]

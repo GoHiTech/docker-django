@@ -18,7 +18,8 @@ export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-${DJANGO_PROJECT_NAME}.
 # Ensure base setting files are in location
 [ -d settings.d ] || mkdir settings.d
 [ -d ${DJANGO_PROJECT_NAME}/settings.d ]  || ln -sr settings.d ${DJANGO_PROJECT_NAME}/settings.d
-[ -f ${DJANGO_PROJECT_NAME}/settings.py ] && mv ${DJANGO_PROJECT_NAME}/settings.py ${DJANGO_PROJECT_NAME}/settings.d/
+[ -f ${DJANGO_PROJECT_NAME}/settings.py ] && mv ${DJANGO_PROJECT_NAME}/settings.py ${DJANGO_PROJECT_NAME}/settings.py_$(date '+%Y%m%d')
+#[ -f ${DJANGO_PROJECT_NAME}/settings.py ] && mv ${DJANGO_PROJECT_NAME}/settings.py ${DJANGO_PROJECT_NAME}/settings.d/
 ln -sr settings.py ${DJANGO_PROJECT_NAME}/settings.py
 
 # Services?
@@ -30,7 +31,7 @@ export is_memcached is_db
 # Run?
 if [[ $GUNICORN_ENABLE == True ]]; then
   export CELERY_ENABLE='False'
-elif [[ $CELERY_ENABLE == True ]]; then
+elif [[ $CELERY_ENABLE == True ]] || [[ $CELERY_ENABLE == worker ]] || [[ $CELERY_ENABLE == beat ]]; then
   export GUNICORN_ENABLE='False'
 elif [[ $GUNICORN_ENABLE != False ]]; then
   export GUNICORN_ENABLE='True'
@@ -49,7 +50,6 @@ if $is_db; then
   pip install --no-cache-dir psycopg2
 
   [ -z $POSTGRES_PASSWORD ] && export POSTGRES_PASSWORD='postgres'
-
 
   # Ensure Postgres database is ready to accept a connection
   echo "Trying db connection..."
@@ -94,9 +94,12 @@ if [[ $GUNICORN_ENABLE == True ]]; then
     --access-logfile - \
     --error-logfile - \
     "$@"
-elif [[ $CELERY_ENABLE == True ]]; then
+  exit
+elif [[ $CELERY_ENABLE == True ]] || [[ $CELERY_ENABLE == worker ]] || [[ $CELERY_ENABLE == beat ]]; then
   # Source files in docker-entrypoint_celery.d/ dump directory
   IFS=$'\n' eval 'for f in $(find /docker-entrypoint_celery.d/ -type f ! \( -iname '*.DISABLE' \) -print |sort); do source ${f}; done'
+
+  [ -f /tmp/celerybeat.pid ] && rm -f /tmp/celerybeat.pid
 
   export CELERY_USER="${RUNAS_USER}"
 
@@ -109,10 +112,21 @@ BROKER_URL = os.environ.get('CELERY_BROKER_URL', 'amqp://')
 EOT
   fi
 
-  su_cmd="python manage.py celery worker $@"
+  celery_cmd='worker'
+  if [[ $CELERY_ENABLE == beat ]]; then
+    celery_cmd='beat --pidfile=/tmp/celerybeat.pid --schedule=/tmp/celerybeat-schedule'
+    if $is_db; then
+      celery_cmd="${celery_cmd} --scheduler=djcelery.schedulers.DatabaseScheduler"
+      sleep 3	# Workaround; wait for djcelery migration
+    fi
+  fi
 
-  echo 'Starting Celery worker.'; echo "${su_cmd}"
+  su_cmd="python manage.py celery $celery_cmd $@"
+
+  echo 'Starting Celery...'; echo "${su_cmd}"
   su -c "${su_cmd}" -p - $CELERY_USER
+  exit
 else
   $@
+  exit
 fi
