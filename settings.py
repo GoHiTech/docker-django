@@ -136,7 +136,8 @@ if _gethostbyname('memcached'):
             'LOCATION': socket.gethostbyname('memcached') + ':11211',
         },
     }
-elif _gethostbyname('db'):
+
+if _gethostbyname('db'):
     if not _gethostbyname('memcached'):
         CACHES = {
             'default': {
