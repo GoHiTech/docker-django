@@ -25,6 +25,11 @@ import os
 # http://docs.celeryproject.org/en/3.1/configuration.html
 import djcelery
 
+try:
+    from tardis.default_settings import *  # noqa # pylint: disable=W0614
+except ImportError:
+    pass
+
 def _gethostbyname(hostname):
     try:
         socket.gethostbyname(hostname)
