@@ -1,10 +1,11 @@
 version: '2'
 services:
   django:
+    image: gohitech/django:djcelery
     build: .
     environment:
       - DJANGO_ADMINS=[('John', 'john@example.com'), ('Mary', 'mary@example.com')]
-      - DJANGO_DEBUG=True
+      - DJANGO_DEBUG=False
       - GUNICORN_WORKER_CLASS=gevent
       - POSTGRES_PASSWORD=password
     links:
@@ -14,7 +15,7 @@ services:
     volumes:
       - ./share:/share
   celery:
-    image: dockerdjango_django
+    image: gohitech/django:djcelery
     command: --loglevel=INFO --autoreload
     environment:
       - CELERY_ENABLE=True
@@ -22,7 +23,7 @@ services:
     links:
       - db
   beat:
-    image: dockerdjango_django
+    image: gohitech/django:djcelery
     command: --loglevel=INFO
     environment:
       - CELERY_ENABLE=beat
@@ -31,7 +32,7 @@ services:
       - db
     restart: on-failure
   other:
-    image: dockerdjango_django
+    image: gohitech/django:djcelery
     command: ["tail","-f","/dev/null",]
     environment:
       - GUNICORN_ENABLE=False

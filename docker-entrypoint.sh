@@ -45,9 +45,9 @@ else
   echo "WARNING: Caches container link; memcached: Name or service not known"
 fi
 
-# Configure and setup database if present
+# Configure and setup postgres database if present
 if $is_db; then
-  pip install --no-cache-dir psycopg2
+  pip install --no-cache-dir psycopg2-binary
 
   [ -z $POSTGRES_PASSWORD ] && export POSTGRES_PASSWORD='postgres'
 
