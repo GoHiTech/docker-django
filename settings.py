@@ -26,7 +26,7 @@ import os
 import djcelery
 
 try:
-    from tardis.default_settings import *  # noqa # pylint: disable=W0614
+    from settings_pre import *
 except ImportError:
     pass
 
@@ -134,23 +134,7 @@ TEMPLATES = [
 # https://docs.djangoproject.com/en/1.8/topics/cache/
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 # https://hub.docker.com/_/postgres/
-if _gethostbyname('memcached'):
-    CACHES = {
-        'default': {
-            'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-            'LOCATION': socket.gethostbyname('memcached') + ':11211',
-        },
-    }
-
-if _gethostbyname('db'):
-    if not _gethostbyname('memcached'):
-        CACHES = {
-            'default': {
-                'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
-                'LOCATION': 'cache_table_default',
-            },
-        }
-
+if _gethostbyname('db') and os.getenv('POSTGRES_PASSWORD') is not None:
     if os.getenv('POSTGRES_PASSWORD') is not None:
         DATABASES = {
             'default': {
@@ -163,11 +147,33 @@ if _gethostbyname('db'):
             },
         }
 else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME':   os.path.join('/tmp', os.getenv('DJANGO_PROJECT_NAME', 'gohitech') + '.sqlite3'),
+        },
+    }
+
+if _gethostbyname('memcached'):
     CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+            'LOCATION': socket.gethostbyname('memcached') + ':11211',
+        },
+    }
+else:
+    CACHES = {
+        'default': {
+            'BACKEND':  'django.core.cache.backends.db.DatabaseCache',
+            'LOCATION': 'default_cache',
+        },
+    }
+    """CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.dummy.DummyCache',
         },
     }
+    """
 
 # Provide overrides in settings.d/*.py
 config_files = glob.glob(os.path.join(os.getenv('DJANGO_PROJECT_NAME', 'gohitech'),'settings.d','*.py'))

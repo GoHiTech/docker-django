@@ -16,11 +16,11 @@ fi
 export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-${DJANGO_PROJECT_NAME}.settings}"
 
 # Ensure base setting files are in location
-[ -d settings.d ] || mkdir settings.d
+[ -d settings.d ]                         || mkdir settings.d
 [ -d ${DJANGO_PROJECT_NAME}/settings.d ]  || ln -sr settings.d ${DJANGO_PROJECT_NAME}/settings.d
-[ -f ${DJANGO_PROJECT_NAME}/settings.py ] && mv ${DJANGO_PROJECT_NAME}/settings.py ${DJANGO_PROJECT_NAME}/settings.py_$(date '+%Y%m%d')
-#[ -f ${DJANGO_PROJECT_NAME}/settings.py ] && mv ${DJANGO_PROJECT_NAME}/settings.py ${DJANGO_PROJECT_NAME}/settings.d/
+[ -h ${DJANGO_PROJECT_NAME}/settings.py ] || ( [ -f ${DJANGO_PROJECT_NAME}/settings.py ] && mv ${DJANGO_PROJECT_NAME}/settings.py ${DJANGO_PROJECT_NAME}/settings.py_$(date '+%Y%m%d') )
 ln -sr settings.py ${DJANGO_PROJECT_NAME}/settings.py
+[ -f settings_pre.py ]                    && ln -sr settings_pre.py ${DJANGO_PROJECT_NAME}/settings_pre.py
 
 # Services?
 is_memcached=false; is_db=false
