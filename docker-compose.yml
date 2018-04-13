@@ -30,7 +30,6 @@ services:
       - POSTGRES_PASSWORD=password
     links:
       - db
-    restart: on-failure
   other:
     image: gohitech/django:djcelery
     command: ["tail","-f","/dev/null",]

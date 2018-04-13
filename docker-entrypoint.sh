@@ -13,14 +13,18 @@ if [ ! -f manage.py ]; then
   django-admin startproject ${DJANGO_PROJECT_NAME} .
   mv ${DJANGO_PROJECT_NAME}/settings.py ${DJANGO_PROJECT_NAME}/settings_startproject.py
 fi
-export DJANGO_SETTINGS_MODULE="${DJANGO_SETTINGS_MODULE:-${DJANGO_PROJECT_NAME}.settings}"
+[ -z $DJANGO_SETTINGS_MODULE ] && export DJANGO_SETTINGS_MODULE="${DJANGO_PROJECT_NAME}.settings"
 
 # Ensure base setting files are in location
 [ -d settings.d ]                         || mkdir settings.d
 [ -d ${DJANGO_PROJECT_NAME}/settings.d ]  || ln -sr settings.d ${DJANGO_PROJECT_NAME}/settings.d
-[ -h ${DJANGO_PROJECT_NAME}/settings.py ] || ( [ -f ${DJANGO_PROJECT_NAME}/settings.py ] && mv ${DJANGO_PROJECT_NAME}/settings.py ${DJANGO_PROJECT_NAME}/settings.py_$(date '+%Y%m%d') )
-ln -sr settings.py ${DJANGO_PROJECT_NAME}/settings.py
-[ -f settings_pre.py ]                    && ln -sr settings_pre.py ${DJANGO_PROJECT_NAME}/settings_pre.py
+if [ ! -h ${DJANGO_PROJECT_NAME}/settings.py ]; then
+  [ -f ${DJANGO_PROJECT_NAME}/settings.py ] && mv ${DJANGO_PROJECT_NAME}/settings.py ${DJANGO_PROJECT_NAME}/settings.py_$(date '+%Y%m%d')
+  ln -sr settings.py ${DJANGO_PROJECT_NAME}/settings.py
+fi
+if [ -f settings_pre.py ]; then
+  [ -h ${DJANGO_PROJECT_NAME}/settings_pre.py ] || ln -sr settings_pre.py ${DJANGO_PROJECT_NAME}/settings_pre.py
+fi
 
 # Services?
 is_memcached=false; is_db=false
@@ -127,6 +131,7 @@ EOT
   su -c "${su_cmd}" -p - $CELERY_USER
   exit
 else
-  $@
+  su_cmd="${@}"
+  su -c "${su_cmd}" -p - $RUNAS_USER
   exit
 fi
