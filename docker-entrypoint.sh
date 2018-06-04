@@ -27,12 +27,33 @@ fi
 
 # Services?
 is_memcached=false; is_db=false
-#if [ ! \( -z $MEMCACHED_ENABLE -a -z $MEMCACHED_HOSTNAME -a -z $MEMCACHED_PORT \) ]; then
-#  is_memcached=true
-#fi
-#[ -z $MEMCACHED_PORT $MEMCACHED_HOSTNAME $MEMCACHED_ENABLE ]
+# https://github.com/memcached/memcached/wiki/ConfiguringServer
+if [ ! \( -z $MEMCACHED_ENABLE -a -z $MEMCACHED_HOSTNAME -a -z $MEMCACHED_PORT \) ]; then
 #ping -c1 -w1 memcached &>/dev/null && is_memcached=true
+  [ -z $MEMCACHED_HOSTNAME ] && export MEMCACHED_HOSTNAME='localhost'
+  [ -z $MEMCACHED_PORT ]     && export MEMCACHED_PORT='11211'
+  timeout=5
+  until nc -z ${MEMCACHED_HOSTNAME} ${MEMCACHED_PORT} || [ $timeout -eq 0 ]; do
+    echo "Memcached not ready, will try again shortly"
+    sleep 1
+    (( --timeout ))
+  done
+  is_memcached=true
+  [[ $timeout -eq 0 ]] && { echo "Memcached not ready, DISABLED"; is_memcached=false; }
+fi
+if [ ! \( -z $POSTGRES_HOSTNAME -a -z $POSTGRES_PORT -a -z $POSTGRES_PASSWORD \) ]; then
 #ping -c1 -w1 db        &>/dev/null && is_db=true
+  [ -z $POSTGRES_HOSTNAME ] && export POSTGRES_HOSTNAME='localhost'
+  [ -z $POSTGRES_PORT ]     && export POSTGRES_PORT='5432'
+  timeout=5
+  until nc -z ${POSTGRES_HOSTNAME} ${POSTGRES_PORT} || [ $timeout -eq 0 ]; do
+    echo "BD not ready, will try again shortly"
+    sleep 1
+    (( --timeout ))
+  done
+  is_db=true
+  [[ $timeout -eq 0 ]] && { echo "DB not ready, DISABLED"; is_db=false; }
+fi
 export is_memcached is_db
 
 # Run?
