@@ -1,16 +1,11 @@
 version: '2'
 services:
   django:
+    image: gohitech/django:k8s
     build: .
     environment:
       - DJANGO_ADMINS=[('John', 'john@example.com'), ('Mary', 'mary@example.com')]
       - DJANGO_DEBUG=True
       - GUNICORN_WORKER_CLASS=gevent
-    links:
-      - db
     ports:
       - "127.0.0.1:8000:8000"
-  db:
-    image: postgres
-    environment:
-      - BD_NAME=mytardis-dev

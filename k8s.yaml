@@ -1,0 +1,40 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: trudat-deployment
+  labels:
+    app: trudat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trudat
+  template:
+    metadata:
+      labels:
+        app: trudat
+    spec:
+      containers:
+      - name: django
+        image: django:k8s
+        ports:
+        - containerPort: 8000
+        env:
+        - name: DJANGO_DEBUG
+          value: "True"
+        - name: DJANGO_ALLOWED_HOSTS
+          value: "'*'"
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: trudat-service
+spec:
+  selector:
+    app: trudat
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+  type: LoadBalancer
