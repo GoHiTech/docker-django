@@ -53,7 +53,7 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
 
 # http://docs.celeryproject.org/en/3.1/configuration.html
-BROKER_URL = 'amqp://guest:guest@rabbitmq:5672//'
+BROKER_URL = 'amqp://guest:guest@' + os.getenv('RABBITMQ_HOSTNAME', 'rabbitmq') + ':5672//'
 CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml',]
 
 
@@ -134,7 +134,7 @@ TEMPLATES = [
 # https://docs.djangoproject.com/en/1.8/topics/cache/
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 # https://hub.docker.com/_/postgres/
-if _gethostbyname('db') and os.getenv('POSTGRES_PASSWORD') is not None:
+if os.getenv('is_db') == True and os.getenv('POSTGRES_PASSWORD') is not None:
     if os.getenv('POSTGRES_PASSWORD') is not None:
         DATABASES = {
             'default': {
@@ -142,8 +142,8 @@ if _gethostbyname('db') and os.getenv('POSTGRES_PASSWORD') is not None:
                 'NAME':     os.getenv('POSTGRES_DB', os.getenv('POSTGRES_USER','postgres')),
                 'USER':     os.getenv('POSTGRES_USER','postgres'),
                 'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-                'HOST':     'db',
-                'PORT':     '5432',
+                'HOST':     os.getenv('DJANGO_DATABASES_default_HOST', 'db'),
+                'PORT':     os.getenv('DJANGO_DATABASES_default_PORT', '5432'),
             },
         }
 else:
@@ -154,11 +154,11 @@ else:
         },
     }
 
-if _gethostbyname('memcached'):
+if os.getenv('is_memcached') == True:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-            'LOCATION': socket.gethostbyname('memcached') + ':11211',
+            'LOCATION': os.getenv('MEMCACHED_HOSTNAME', 'memcached') + ':11211',
         },
     }
 else:

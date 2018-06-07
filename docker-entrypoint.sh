@@ -28,8 +28,35 @@ fi
 
 # Services?
 is_memcached=false; is_db=false
-ping -c1 -w1 memcached &>/dev/null && is_memcached=true
-ping -c1 -w1 db        &>/dev/null && is_db=true
+# https://github.com/memcached/memcached/wiki/ConfiguringServer
+#ping -c1 -w1 memcached &>/dev/null && is_memcached=true
+#if [ ! \( -z $MEMCACHED_ENABLE -a -z $MEMCACHED_HOSTNAME -a -z $MEMCACHED_PORT \) ]; then
+#  [ -z $MEMCACHED_HOSTNAME ] && export MEMCACHED_HOSTNAME='memcached'
+#  [ -z $MEMCACHED_PORT ]     && export MEMCACHED_PORT='11211'
+#  timeout=5
+#  until nc -z ${MEMCACHED_HOSTNAME} ${MEMCACHED_PORT} || [ $timeout -eq 0 ]; do
+#    echo "Memcached not ready, will try again shortly"
+#    sleep 1
+#    (( --timeout ))
+#  done
+#  is_memcached=true
+#  [[ $timeout -eq 0 ]] && { echo "Memcached not ready, DISABLED"; is_memcached=false; }
+#fi
+#ping -c1 -w1 db        &>/dev/null && is_db=true
+#if [ ! ( -z $POSTGRES_HOSTNAME -a -z $POSTGRES_PORT -a -z $POSTGRES_PASSWORD ) ]; then
+if [ ! -z $POSTGRES_PASSWORD ]; then
+  [ -z $DJANGO_DATABASES_default_HOST ] && export DJANGO_DATABASES_default_HOST='db'
+  [ -z $DJANGO_DATABASES_default_PORT ] && export DJANGO_DATABASES_default_PORT='5432'
+  [ -z $POSTGRES_PASSWORD ]             && export POSTGRES_PASSWORD='postgres'
+  timeout=60
+  until nc -z ${DJANGO_DATABASES_default_HOST} ${DJANGO_DATABASES_default_PORT} || [ $timeout -eq 0 ]; do
+    echo "BD not ready, will try again shortly"
+    sleep 1
+    (( --timeout ))
+  done
+  is_db=true
+  [[ $timeout -eq 0 ]] && { echo "DB not ready, DISABLED"; is_db=false; }
+fi
 export is_memcached is_db
 
 # Run?
@@ -52,17 +79,6 @@ fi
 # Configure and setup postgres database if present
 if $is_db; then
   pip install --no-cache-dir psycopg2-binary
-
-  [ -z $POSTGRES_PASSWORD ] && export POSTGRES_PASSWORD='postgres'
-
-  # Ensure Postgres database is ready to accept a connection
-  echo "Trying db connection..."
-  while ! nc -z db 5432; do
-    echo "BD not ready, will try again shortly"
-    sleep 1
-  done
-  echo "Connected to DB, will continue processing"
-  sleep 3
 
   if [[ $GUNICORN_ENABLE == True ]]; then
     echo 'python manage.py migrate --fake-initial'
