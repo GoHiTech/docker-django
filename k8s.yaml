@@ -1,0 +1,70 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: trudat-deployment
+  labels:
+    app: trudat
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trudat
+  template:
+    metadata:
+      labels:
+        app: trudat
+    spec:
+      containers:
+      - name: django
+        image: django:4
+        ports:
+        - containerPort: 8000
+        env:
+        - { name: "DJANGO_ALLOWED_HOSTS",          value: "'*'" }
+        - { name: "DJANGO_DATABASES_default_HOST", value: "localhost" }
+        - { name: "DJANGO_DEBUG",                  value: "True" }
+        - { name: "GUNICORN_WORKER_CLASS",         value: "gevent" }
+        - { name: "POSTGRES_PASSWORD",             value: "password" }
+        - { name: "RABBITMQ_HOSTNAME",             value: "localhost" }
+      - name: celery
+        image: django:4
+        args: ["--loglevel=INFO","--autoreload"]
+        env:
+        - { name: "CELERY_ENABLE",                 value: "True" }
+        - { name: "DJANGO_DATABASES_default_HOST", value: "localhost" }
+        - { name: "POSTGRES_PASSWORD",             value: "password" }
+        - { name: "RABBITMQ_HOSTNAME",             value: "localhost" }
+      - name: beat
+        image: django:4
+        args: ["--loglevel=INFO"]
+        env:
+        - { name: "CELERY_ENABLE",                 value: "beat" }
+        - { name: "DJANGO_DATABASES_default_HOST", value: "localhost" }
+        - { name: "POSTGRES_PASSWORD",             value: "password" }
+        - { name: "RABBITMQ_HOSTNAME",             value: "localhost" }
+      - name: other
+        image: django:4
+        command: ["tail"]
+        args: ["-f","/dev/null"]
+        env:
+        - { name: "GUNICORN_ENABLE", value: "False" }
+      - name: db
+        image: postgres
+        env:
+        - { name: "POSTGRES_PASSWORD", value: "password" }
+      - name: rabbitmq
+        image: rabbitmq:3
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: trudat-service
+spec:
+  selector:
+    app: trudat
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
+  type: LoadBalancer
