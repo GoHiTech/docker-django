@@ -28,24 +28,26 @@ fi
 # Services?
 is_memcached=false; is_db=false
 # https://github.com/memcached/memcached/wiki/ConfiguringServer
-if [ ! \( -z $MEMCACHED_ENABLE -a -z $MEMCACHED_HOSTNAME -a -z $MEMCACHED_PORT \) ]; then
 #ping -c1 -w1 memcached &>/dev/null && is_memcached=true
-  [ -z $MEMCACHED_HOSTNAME ] && export MEMCACHED_HOSTNAME='localhost'
-  [ -z $MEMCACHED_PORT ]     && export MEMCACHED_PORT='11211'
-  timeout=5
-  until nc -z ${MEMCACHED_HOSTNAME} ${MEMCACHED_PORT} || [ $timeout -eq 0 ]; do
-    echo "Memcached not ready, will try again shortly"
-    sleep 1
-    (( --timeout ))
-  done
-  is_memcached=true
-  [[ $timeout -eq 0 ]] && { echo "Memcached not ready, DISABLED"; is_memcached=false; }
-fi
-if [ ! \( -z $POSTGRES_HOSTNAME -a -z $POSTGRES_PORT -a -z $POSTGRES_PASSWORD \) ]; then
+#if [ ! \( -z $MEMCACHED_ENABLE -a -z $MEMCACHED_HOSTNAME -a -z $MEMCACHED_PORT \) ]; then
+#  [ -z $MEMCACHED_HOSTNAME ] && export MEMCACHED_HOSTNAME='memcached'
+#  [ -z $MEMCACHED_PORT ]     && export MEMCACHED_PORT='11211'
+#  timeout=5
+#  until nc -z ${MEMCACHED_HOSTNAME} ${MEMCACHED_PORT} || [ $timeout -eq 0 ]; do
+#    echo "Memcached not ready, will try again shortly"
+#    sleep 1
+#    (( --timeout ))
+#  done
+#  is_memcached=true
+#  [[ $timeout -eq 0 ]] && { echo "Memcached not ready, DISABLED"; is_memcached=false; }
+#fi
 #ping -c1 -w1 db        &>/dev/null && is_db=true
-  [ -z $POSTGRES_HOSTNAME ] && export POSTGRES_HOSTNAME='localhost'
+#if [ ! ( -z $POSTGRES_HOSTNAME -a -z $POSTGRES_PORT -a -z $POSTGRES_PASSWORD ) ]; then
+if [ ! -z $POSTGRES_PASSWORD ]; then
+  [ -z $POSTGRES_HOSTNAME ] && export POSTGRES_HOSTNAME='db'
   [ -z $POSTGRES_PORT ]     && export POSTGRES_PORT='5432'
-  timeout=5
+  [ -z $POSTGRES_PASSWORD ] && export POSTGRES_PASSWORD='postgres'
+  timeout=60
   until nc -z ${POSTGRES_HOSTNAME} ${POSTGRES_PORT} || [ $timeout -eq 0 ]; do
     echo "BD not ready, will try again shortly"
     sleep 1
@@ -76,26 +78,7 @@ fi
 
 # Configure and setup database if present
 if $is_db; then
-  if [ -z $POSTGRES_HOSTNAME ]; then
-    case $DEPLOYMENT in
-      kubernetes)   POSTGRES_HOSTNAME='localhost' ;;
-      docker|swarm) POSTGRES_HOSTNAME='db' ;;
-      *)            POSTGRES_HOSTNAME='db' ;;
-    esac
-    export POSTGRES_HOSTNAME
-  fi
-  [ -z $POSTGRES_PASSWORD ] && export POSTGRES_PASSWORD='postgres'
-
   pip install --no-cache-dir psycopg2-binary
-
-  # Ensure Postgres database is ready to accept a connection
-  echo "Trying db connection..."
-  while ! nc -z $POSTGRES_HOSTNAME 5432; do
-    echo "BD not ready, will try again shortly"
-    sleep 1
-  done
-  echo "Connected to DB, will continue processing"
-  sleep 2
 
   if [[ $GUNICORN_ENABLE == True ]]; then
     echo 'python manage.py migrate --fake-initial'

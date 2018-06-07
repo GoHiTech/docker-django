@@ -21,10 +21,35 @@ spec:
         ports:
         - containerPort: 8000
         env:
-        - name: DJANGO_DEBUG
-          value: "True"
-        - name: DJANGO_ALLOWED_HOSTS
-          value: "'*'"
+        - { name: "DJANGO_DEBUG",          value: "True" }
+        - { name: "DJANGO_ALLOWED_HOSTS",  value: "'*'" }
+        - { name: "GUNICORN_WORKER_CLASS", value: "gevent" }
+        - { name: "POSTGRES_HOSTNAME",     value: "localhost" }
+        - { name: "POSTGRES_PASSWORD",     value: "password" }
+      - name: celery
+        image: django:k8s
+        args: ["--loglevel=INFO","--autoreload"]
+        env:
+        - { name: "CELERY_ENABLE",     value: "True" }
+        - { name: "POSTGRES_PASSWORD", value: "password" }
+      - name: beat
+        image: django:k8s
+        args: ["--loglevel=INFO"]
+        env:
+        - { name: "CELERY_ENABLE",     value: "beat" }
+        - { name: "POSTGRES_PASSWORD", value: "password" }
+      - name: other
+        image: django:k8s
+        command: ["tail"]
+        args: ["-f","/dev/null"]
+        env:
+        - { name: "GUNICORN_ENABLE", value: "False" }
+      - name: db
+        image: postgres
+        env:
+        - { name: "POSTGRES_PASSWORD", value: "password" }
+      - name: rabbitmq
+        image: rabbitmq:3
 ---
 kind: Service
 apiVersion: v1
