@@ -90,7 +90,7 @@ if $is_db; then
     fi
   fi
 else
-  echo "WARNING: Database container link; db: Name or service not known"
+  echo "WARNING: Database container link; ${DJANGO_DATABASES_default_HOST}: Name or service not known"
 fi
 
 if [[ $GUNICORN_ENABLE == True ]]; then
