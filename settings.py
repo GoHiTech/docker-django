@@ -134,18 +134,18 @@ TEMPLATES = [
 # https://docs.djangoproject.com/en/1.8/topics/cache/
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 # https://hub.docker.com/_/postgres/
-if os.getenv('is_db') == True and os.getenv('POSTGRES_PASSWORD') is not None:
-    if os.getenv('POSTGRES_PASSWORD') is not None:
-        DATABASES = {
-            'default': {
-                'ENGINE':  'django.db.backends.postgresql_psycopg2',
-                'NAME':     os.getenv('POSTGRES_DB', os.getenv('POSTGRES_USER','postgres')),
-                'USER':     os.getenv('POSTGRES_USER','postgres'),
-                'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-                'HOST':     os.getenv('DJANGO_DATABASES_default_HOST', 'db'),
-                'PORT':     os.getenv('DJANGO_DATABASES_default_PORT', '5432'),
-            },
-        }
+#if os.getenv('is_db') == True and os.getenv('POSTGRES_PASSWORD') is not None:
+if os.getenv('POSTGRES_PASSWORD') is not None:
+    DATABASES = {
+        'default': {
+            'ENGINE':  'django.db.backends.postgresql_psycopg2',
+            'NAME':     os.getenv('POSTGRES_DB', os.getenv('POSTGRES_USER','postgres')),
+            'USER':     os.getenv('POSTGRES_USER','postgres'),
+            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
+            'HOST':     os.getenv('DJANGO_DATABASES_default_HOST', 'db'),
+            'PORT':     os.getenv('DJANGO_DATABASES_default_PORT', '5432'),
+        },
+    }
 else:
     DATABASES = {
         'default': {
