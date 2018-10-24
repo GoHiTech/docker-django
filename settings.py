@@ -135,6 +135,7 @@ TEMPLATES = [
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 # https://hub.docker.com/_/postgres/
 #if os.getenv('is_db') == True and os.getenv('POSTGRES_PASSWORD') is not None:
+#if os.environ["is_db"].lower() == 'true' and os.getenv('POSTGRES_PASSWORD') is not None:
 if os.getenv('POSTGRES_PASSWORD') is not None:
     DATABASES = {
         'default': {
@@ -154,7 +155,7 @@ else:
         },
     }
 
-if os.getenv('is_memcached') == True:
+if os.getenv('is_memcached').lower() == 'true':
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
@@ -180,7 +181,7 @@ config_files = glob.glob(os.path.join(os.getenv('DJANGO_PROJECT_NAME', 'gohitech
 #config_files = glob.glob(os.path.join(BASE_DIR,'settings.d','*.py'))
 try:
     for config_f in sorted(config_files):
-        print "INFO: Execute config file %s" % os.path.abspath(config_f)
+        #print "INFO: Execute config file %s" % os.path.abspath(config_f)
         execfile(os.path.abspath(config_f))
 except TypeError,e:
     pass

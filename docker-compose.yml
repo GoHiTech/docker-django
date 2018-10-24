@@ -1,4 +1,4 @@
-version: '2'
+version: '2.2'
 services:
   django:
     image: gohitech/django:djcelery
@@ -7,6 +7,7 @@ services:
       - DJANGO_ADMINS=[('John', 'john@example.com'), ('Mary', 'mary@example.com')]
       - DJANGO_DEBUG=False
       - GUNICORN_WORKER_CLASS=gevent
+      - GUNICORN_WORKERS=4
       - POSTGRES_PASSWORD=password
     links:
       - db
@@ -14,14 +15,19 @@ services:
       - "127.0.0.1:8000:8000"
     volumes:
       - ./share:/share
+    cpus: '2.0'
+    mem_limit: 500m
   celery:
     image: gohitech/django:djcelery
-    command: --loglevel=INFO --autoreload
+    command: --loglevel=INFO --autoreload --concurrency=2
     environment:
       - CELERY_ENABLE=True
+      - CELERY_CONCURRENCY=4
       - POSTGRES_PASSWORD=password
     links:
       - db
+    cpus: '2.0'
+    mem_limit: 500m
   beat:
     image: gohitech/django:djcelery
     command: --loglevel=INFO
@@ -30,14 +36,22 @@ services:
       - POSTGRES_PASSWORD=password
     links:
       - db
+    cpus: '0.5'
+    mem_limit: 500m
   other:
     image: gohitech/django:djcelery
     command: ["tail","-f","/dev/null",]
     environment:
       - GUNICORN_ENABLE=False
+    cpus: '0.5'
+    mem_limit: 500m
   db:
     image: postgres
     environment:
       - POSTGRES_PASSWORD=password
+    cpus: '2.0'
+    mem_limit: 500m
   rabbitmq:
     image: rabbitmq:3
+    cpus: '1.0'
+    mem_limit: 500m

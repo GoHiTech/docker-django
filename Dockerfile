@@ -24,6 +24,13 @@ RUN pip install --no-cache-dir \
 COPY docker-entrypoint.d/ /docker-entrypoint.d/
 COPY docker-entrypoint_celery.d/ /docker-entrypoint_celery.d/
 COPY docker-entrypoint.sh /
+COPY gunicorn.py /
+
+# Gunicorn default settings
+ENV GUNICORN_USER="user"
+ENV GUNICORN_WORKERS="4"
+ENV GUNICORN_BIND="0.0.0.0:8000"
+ENV GUNICORN_LOG_LEVEL="info"
 
 # Django Docker default settings
 ENV DJANGO_ALLOWED_HOSTS="['localhost','.gohitech.net',]"
