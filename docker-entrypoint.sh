@@ -97,7 +97,7 @@ if [[ $GUNICORN_ENABLE == True ]]; then
   # Source files in docker-entrypoint.d/ dump directory
   IFS=$'\n' eval 'for f in $(find /docker-entrypoint.d/ -type f ! \( -iname '*.DISABLE' \) -print |sort); do source ${f}; done'
 
-  export GUNICORN_USER="${RUNAS_USER}"
+  [[ -z $RUNAS_USER ]] || export GUNICORN_USER="${RUNAS_USER}"
   # https://docs.djangoproject.com/en/1.8/howto/static-files/
   echo 'python manage.py collectstatic --noinput'
   python manage.py collectstatic --noinput
@@ -106,13 +106,10 @@ if [[ $GUNICORN_ENABLE == True ]]; then
   echo 'Starting Gunicorn.'
   exec gunicorn ${DJANGO_PROJECT_NAME}.wsgi \
     --name         ${GUNICORN_NAME:-'wsgi_app'} \
-    --bind         ${GUNICORN_BIND_IP:-'0.0.0.0'}:8000 \
-    --user         ${GUNICORN_USER:-'user'} \
-    --worker-class ${GUNICORN_WORKER_CLASS:-'sync'} \
     --workers      ${GUNICORN_WORKERS:-$(( 2 * $(nproc --all) ))} \
-    --log-level    ${GUNICORN_LOG_LEVEL:-'info'} \
     --access-logfile - \
     --error-logfile - \
+    --config       file:///gunicorn.py \
     "$@"
   exit
 elif [[ $CELERY_ENABLE == True ]] || [[ $CELERY_ENABLE == worker ]] || [[ $CELERY_ENABLE == beat ]]; then
@@ -133,6 +130,8 @@ EOT
   fi
 
   celery_cmd='worker'
+  [[ -z $CELERY_CONCURRENCY ]] || celery_cmd="${celery_cmd} --concurrency=${CELERY_CONCURRENCY}"
+
   if [[ $CELERY_ENABLE == beat ]]; then
     celery_cmd='beat --pidfile=/tmp/celerybeat.pid --schedule=/tmp/celerybeat-schedule'
     if $is_db; then
@@ -144,10 +143,10 @@ EOT
   su_cmd="python manage.py celery $celery_cmd $@"
 
   echo 'Starting Celery...'; echo "${su_cmd}"
-  su -c "${su_cmd}" -p - $CELERY_USER
+  exec su -c "exec ${su_cmd}" -p - $CELERY_USER
   exit
 else
   su_cmd="${@}"
-  su -c "${su_cmd}" -p - $RUNAS_USER
+  exec su -c "exec ${su_cmd}" -p $RUNAS_USER
   exit
 fi
