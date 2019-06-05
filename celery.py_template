@@ -1,0 +1,26 @@
+# http://docs.celeryproject.org/en/3.1/getting-started/next-steps.html#project-layout
+# http://docs.celeryproject.org/en/3.1/django/first-steps-with-django.html#using-celery-with-django
+
+from __future__ import absolute_import
+
+import os
+
+from celery import Celery
+
+# set the default Django settings module for the 'celery' program.
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', '${DJANGO_PROJECT_NAME}.settings')
+
+from django.conf import settings  # noqa
+
+app = Celery('${DJANGO_PROJECT_NAME}')
+
+# Using a string here means the worker will not have to
+# pickle the object when using Windows.
+app.config_from_object('django.conf:settings')
+app.autodiscover_tasks(lambda: settings.INSTALLED_APPS)
+
+app.conf.BROKER_URL = 'amqp://iguest:guest@${RABBITMQ_HOSTNAME}:5672//'
+
+@app.task(bind=True)
+def debug_task(self):
+    print('Request: {0!r}'.format(self.request))

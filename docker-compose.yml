@@ -5,7 +5,7 @@ services:
     build: .
     environment:
       - DJANGO_ADMINS=[('John', 'john@example.com'), ('Mary', 'mary@example.com')]
-      - DJANGO_DEBUG=False
+      - DJANGO_DEBUG=True
       - GUNICORN_WORKER_CLASS=gevent
       - GUNICORN_WORKERS=4
       - POSTGRES_PASSWORD=password
@@ -19,10 +19,11 @@ services:
     mem_limit: 500m
   celery:
     image: gohitech/django:djcelery
-    command: --loglevel=INFO --autoreload --concurrency=2
+    command: -A gohitech --loglevel=DEBUG --autoreload
+    #command: -A gohitech --loglevel=DEBUG --autoreload --broker='amqp://guest:guest@rabbitmq:5672//'
     environment:
       - CELERY_ENABLE=True
-      - CELERY_CONCURRENCY=4
+      - CELERY_CONCURRENCY=2
       - POSTGRES_PASSWORD=password
     links:
       - db
@@ -43,6 +44,7 @@ services:
     command: ["tail","-f","/dev/null",]
     environment:
       - GUNICORN_ENABLE=False
+      - POSTGRES_PASSWORD=password
     cpus: '0.5'
     mem_limit: 500m
   db:

@@ -23,7 +23,6 @@ import os
 # https://pypi.python.org/pypi/django-celery
 # http://docs.celeryproject.org/en/3.1/
 # http://docs.celeryproject.org/en/3.1/configuration.html
-import djcelery
 
 try:
     from settings_pre import *
@@ -41,28 +40,23 @@ this_module = sys.modules[__name__]
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-ROOT_URLCONF = os.getenv('DJANGO_PROJECT_NAME', 'gohitech') + '.urls'
+ROOT_URLCONF = "${DJANGO_PROJECT_NAME}.urls"
 
-WSGI_APPLICATION = os.getenv('DJANGO_PROJECT_NAME', 'gohitech') + '.wsgi.application'
+WSGI_APPLICATION = "${DJANGO_PROJECT_NAME}.wsgi.application"
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', '+hzj(tw!bod_*_xh4u2ml!ylbtx6)2r9bqq2i!evjo!x&pay%2')
+SECRET_KEY = "${DJANGO_SECRET_KEY}"
 
 # https://docs.djangoproject.com/en/1.8/howto/static-files/
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, "static")
-
-# http://docs.celeryproject.org/en/3.1/configuration.html
-BROKER_URL = 'amqp://guest:guest@' + os.getenv('RABBITMQ_HOSTNAME', 'rabbitmq') + ':5672//'
-CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml',]
-
 
 # Get all Environment variables with a DJANGO_ prefix; remove prefix
 #print { k: v for k, v in os.environ.iteritems() if k.startswith('DJANGO_') }
 _django_environ = { k[7:]: v for k, v in os.environ.iteritems() if k.startswith('DJANGO_') }
 for key in _django_environ:
     try:
-        if (key in {'PROJECT_NAME','SETTINGS_MODULE',}) or (key.startswith('DATABASE_')):
+        if (key in {'PROJECT_NAME','SETTINGS_MODULE','SECRET_KEY',}) or (key.startswith('DATABASE_')):
             pass
         elif key in {'ADMINS','MANAGERS',}:
             setattr(this_module, key, tuple(literal_eval(_django_environ[key])))
@@ -86,7 +80,7 @@ LOGGING = {
     'loggers': {
         'django': {
             'handlers': ['console',],
-            'level':    os.getenv('DJANGO_LOG_LEVEL','INFO'),
+            'level':    "${DJANGO_LOG_LEVEL}",
         },
     },
 }
@@ -101,7 +95,16 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
 )
+
+# http://docs.celeryproject.org/en/3.1/configuration.html
 INSTALLED_APPS += ("djcelery", )
+import djcelery
+djcelery.setup_loader()
+
+BROKER_URL = 'amqp://guest:guest@${RABBITMQ_HOSTNAME}:5672//'
+CELERY_BROKER_URL = 'amqp://guest:guest@${RABBITMQ_HOSTNAME}:5672//'
+CELERY_RESULT_BACKEND = 'rpc://'
+CELERY_ACCEPT_CONTENT = ['pickle', 'json', 'msgpack', 'yaml',]
 
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -134,32 +137,30 @@ TEMPLATES = [
 # https://docs.djangoproject.com/en/1.8/topics/cache/
 # https://docs.djangoproject.com/en/1.8/ref/settings/#databases
 # https://hub.docker.com/_/postgres/
-#if os.getenv('is_db') == True and os.getenv('POSTGRES_PASSWORD') is not None:
-#if os.environ["is_db"].lower() == 'true' and os.getenv('POSTGRES_PASSWORD') is not None:
-if os.getenv('POSTGRES_PASSWORD') is not None:
+if ${is_db}:
     DATABASES = {
         'default': {
             'ENGINE':  'django.db.backends.postgresql_psycopg2',
-            'NAME':     os.getenv('POSTGRES_DB', os.getenv('POSTGRES_USER','postgres')),
-            'USER':     os.getenv('POSTGRES_USER','postgres'),
-            'PASSWORD': os.getenv('POSTGRES_PASSWORD'),
-            'HOST':     os.getenv('DJANGO_DATABASES_default_HOST', 'db'),
-            'PORT':     os.getenv('DJANGO_DATABASES_default_PORT', '5432'),
+            'NAME':     "${POSTGRES_DB}",
+            'USER':     "${POSTGRES_USER}",
+            'PASSWORD': "${POSTGRES_PASSWORD}",
+            'HOST':     "${DJANGO_DATABASES_default_HOST}",
+            'PORT':     "${DJANGO_DATABASES_default_PORT}",
         },
     }
 else:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
-            'NAME':   os.path.join('/tmp', os.getenv('DJANGO_PROJECT_NAME', 'gohitech') + '.sqlite3'),
+            'NAME':   os.path.join('/tmp', "${DJANGO_PROJECT_NAME}.sqlite3"),
         },
     }
 
-if os.getenv('is_memcached').lower() == 'true':
+if ${is_memcached}:
     CACHES = {
         'default': {
             'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
-            'LOCATION': os.getenv('MEMCACHED_HOSTNAME', 'memcached') + ':11211',
+            'LOCATION': "${MEMCACHED_HOSTNAME}:11211",
         },
     }
 else:
@@ -177,8 +178,8 @@ else:
     """
 
 # Provide overrides in settings.d/*.py
-config_files = glob.glob(os.path.join(os.getenv('DJANGO_PROJECT_NAME', 'gohitech'),'settings.d','*.py'))
 #config_files = glob.glob(os.path.join(BASE_DIR,'settings.d','*.py'))
+config_files = glob.glob(os.path.join("${DJANGO_PROJECT_NAME}",'settings.d','*.py'))
 try:
     for config_f in sorted(config_files):
         #print "INFO: Execute config file %s" % os.path.abspath(config_f)
@@ -186,5 +187,3 @@ try:
 except TypeError,e:
     pass
 
-print "djcelery.setup_loader()"
-djcelery.setup_loader()
