@@ -151,7 +151,6 @@ elif [[ $CELERY_ENABLE == True ]] || [[ $CELERY_ENABLE == worker ]] || [[ $CELER
   GUNICORN_ENABLE='False'
   export CELERY_USER GUNICORN_ENABLE
 
-
   celery_cmd='worker'
   [[ -z $CELERY_CONCURRENCY ]] || celery_cmd="${celery_cmd} --concurrency=${CELERY_CONCURRENCY}"
 
